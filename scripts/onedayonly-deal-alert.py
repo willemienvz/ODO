@@ -6,6 +6,7 @@ import ssl
 from email.message import EmailMessage
 from pathlib import Path
 from urllib.request import Request, urlopen
+import html as html_lib
 
 STATE = Path("seen.json")
 PAGE = "https://www.onedayonly.co.za/"
@@ -55,12 +56,35 @@ for deal in deals:
         fresh.append(deal)
 
 if fresh:
-    lines = []
+    plain_parts = []
+    html_parts = []
     for deal in fresh:
-        lines.append(
-            f"{deal['saving']['percent']}% off — {deal['name']}\n"
-            f"Now {deal['price']['formattedValue']} (was {deal['retailPrice']['formattedValue']})\n"
-            f"https://www.onedayonly.co.za/products/{deal['id']}"
+        product_url = f"https://www.onedayonly.co.za/products/{deal['id']}"
+        name = deal["name"]
+        percent = deal["saving"]["percent"]
+        price = deal["price"]["formattedValue"]
+        retail = deal["retailPrice"]["formattedValue"]
+        picture = ((deal.get("image") or {}).get("url")) or ""
+        if picture and "?" not in picture:
+            picture += "?auto=compress,format&w=480"
+        plain_parts.append(
+            f"{percent}% off — {name}\n"
+            f"Now {price} (was {retail})\n"
+            f"{product_url}"
+        )
+        image_html = ""
+        if picture:
+            image_html = (
+                f'<p><img src="{html_lib.escape(picture, quote=True)}" '
+                f'alt="{html_lib.escape(name)}" width="280"></p>'
+            )
+        html_parts.append(
+            "<div>"
+            f"{image_html}"
+            f"<p><strong>{html_lib.escape(str(percent))}% off</strong> — {html_lib.escape(name)}<br>"
+            f"Now {html_lib.escape(price)} (was {html_lib.escape(retail)})<br>"
+            f'<a href="{html_lib.escape(product_url, quote=True)}">View deal</a></p>'
+            "</div>"
         )
     recipients = [
         address.strip()
@@ -73,7 +97,11 @@ if fresh:
     message["Subject"] = f"OneDayOnly: {len(fresh)} deal(s) over 69% off"
     message["From"] = os.environ["ODO_MAIL_FROM"]
     message["To"] = ", ".join(recipients)
-    message.set_content("\n\n".join(lines))
+    message.set_content("\n\n".join(plain_parts))
+    message.add_alternative(
+        "<html><body>" + "<hr>".join(html_parts) + "</body></html>",
+        subtype="html",
+    )
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
         smtp.starttls(context=ssl.create_default_context())
         smtp.login(os.environ["ODO_SMTP_USERNAME"], os.environ["ODO_SMTP_PASSWORD"])
