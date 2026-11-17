@@ -1,0 +1,39 @@
+name: OneDayOnly deal alert
+
+on:
+  schedule:
+    # GitHub cron is UTC. 04:00–19:45 UTC is 06:00–21:45 SAST.
+    - cron: "*/15 4-19 * * *"
+    # 20:00 UTC is 22:00 SAST.
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore previously emailed deals
+        uses: actions/cache/restore@v4
+        with:
+          path: seen.json
+          key: odo-seen-${{ github.run_id }}
+          restore-keys: |
+            odo-seen-
+
+      - name: Check for deals over 80% off
+        env:
+          ODO_SMTP_USERNAME: ${{ secrets.ODO_SMTP_USERNAME }}
+          ODO_SMTP_PASSWORD: ${{ secrets.ODO_SMTP_PASSWORD }}
+          ODO_MAIL_FROM: ${{ secrets.ODO_MAIL_FROM }}
+          ODO_MAIL_TO: ${{ secrets.ODO_MAIL_TO }}
+        run: python3 scripts/onedayonly-deal-alert.py
+
+      - name: Remember emailed deals
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: seen.json
+          key: odo-seen-${{ github.run_id }}
