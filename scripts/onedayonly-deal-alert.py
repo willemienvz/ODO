@@ -38,10 +38,8 @@ walk(payload["props"]["pageProps"]["homePage"])
 def is_hit(deal):
     saving = deal.get("saving") or {}
     percent = saving.get("percent")
-    types = deal.get("dealTypes") or []
-    promotional = deal.get("isPromotionalDeal") is True or "PD" in types
     return (
-        and isinstance(percent, (int, float))
+        isinstance(percent, (int, float))
         and percent > 69
         and not deal.get("isSoldOut")
     )
