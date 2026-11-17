@@ -3,7 +3,7 @@ name: OneDayOnly deal alert
 on:
   schedule:
     # GitHub cron is UTC. 04:00–19:45 UTC is 06:00–21:45 SAST.
-    - cron: "*/15 4-19 * * *"
+    - cron: "*/5 4-19 * * *"
     # 20:00 UTC is 22:00 SAST.
     - cron: "0 20 * * *"
   workflow_dispatch:
