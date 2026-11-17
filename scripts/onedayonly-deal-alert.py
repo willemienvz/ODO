@@ -41,7 +41,6 @@ def is_hit(deal):
     types = deal.get("dealTypes") or []
     promotional = deal.get("isPromotionalDeal") is True or "PD" in types
     return (
-        promotional
         and isinstance(percent, (int, float))
         and percent > 69
         and not deal.get("isSoldOut")
