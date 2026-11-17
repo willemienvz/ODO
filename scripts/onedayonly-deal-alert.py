@@ -43,7 +43,7 @@ def is_hit(deal):
     return (
         promotional
         and isinstance(percent, (int, float))
-        and percent > 80
+        and percent > 69
         and not deal.get("isSoldOut")
     )
 
@@ -65,15 +65,22 @@ if fresh:
             f"Now {deal['price']['formattedValue']} (was {deal['retailPrice']['formattedValue']})\n"
             f"https://www.onedayonly.co.za/products/{deal['id']}"
         )
-    message = EmailMessage()
-    message["Subject"] = f"OneDayOnly: {len(fresh)} deal(s) over 80% off"
-    message["From"] = os.environ["ODO_MAIL_FROM"]
-    message["To"] = os.environ["ODO_MAIL_TO"]
-    message.set_content("\n\n".join(lines))
-    with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
-        smtp.starttls(context=ssl.create_default_context())
-        smtp.login(os.environ["ODO_SMTP_USERNAME"], os.environ["ODO_SMTP_PASSWORD"])
-        smtp.send_message(message)
+    recipients = [
+    address.strip()
+    for address in os.environ["ODO_MAIL_TO"].split(",")
+    if address.strip()
+]
+if not recipients:
+    raise SystemExit("ODO_MAIL_TO has no email addresses.")
+message = EmailMessage()
+message["Subject"] = f"OneDayOnly: {len(fresh)} deal(s) over 69% off"
+message["From"] = os.environ["ODO_MAIL_FROM"]
+message["To"] = ", ".join(recipients)
+message.set_content("\n\n".join(lines))
+with smtplib.SMTP("smtp.gmail.com", 587, timeout=30) as smtp:
+    smtp.starttls(context=ssl.create_default_context())
+    smtp.login(os.environ["ODO_SMTP_USERNAME"], os.environ["ODO_SMTP_PASSWORD"])
+    smtp.send_message(message, to_addrs=recipients)
     seen.update(deal["id"] for deal in fresh)
 
 STATE.write_text(json.dumps(sorted(seen), indent=2) + "\n", encoding="utf-8")
